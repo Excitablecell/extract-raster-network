@@ -254,11 +254,12 @@ def connect_graph(skel: np.ndarray, min_distance: int) -> nx.MultiGraph:
             if d < min_distance:
                 n1 = edge.start
                 n2 = edge.stop
-                nodes = merge_nodes(nodes, edges, n1, n2)
-                edges = find_paths(skel, nodes, min_distance)
-                print(f'Merged {n1} and {n2}, d={d}')
-                any_changed = True
-                break
+                if n1 != n2:
+                    nodes = merge_nodes(nodes, edges, n1, n2)
+                    edges = find_paths(skel, nodes, min_distance)
+                    print(f'Merged {n1} and {n2}, d={d}')
+                    any_changed = True
+                    break
 
     # All good!
     return make_graph(nodes, edges)
@@ -294,6 +295,9 @@ def render_network(im: Image, graph: nx.Graph, rgb: Tuple[int]) -> Image:
     """
     r, g, b = rgb
     px = np.asarray(im).copy()
+    
+    print(f'graph nodes: {len(graph.nodes())}' )
+    print(f'graph edges: {len(graph.edges())}' )
 
     for x, y in graph.nodes():
         circle = create_circular_mask(px.shape[0:2], (y, x), 4).astype(np.uint8)
@@ -320,6 +324,7 @@ def render_skeleton(im: Image, skel: np.ndarray, rgb: Tuple[int]) -> Image:
     r, g, b = rgb
     px = np.asarray(im).copy()
     skel = skel.T
+    print(skel.shape)
     px[skel > 0, 0] = r
     px[skel > 0, 1] = g
     px[skel > 0, 2] = b
@@ -376,18 +381,20 @@ if __name__ == '__main__':
 
     print(f'Street RGB: {rgb}')
     print(f'Street pixels: {px.sum()}')
-    g = extract_network(px)
+    g = extract_network(px, 16)
     print(f'Extracted street network:')
     print(f'  - {len(g.nodes())} nodes')
     print(f'  - {len(g.edges())} edges')
 
     skel = morphology.skeletonize(px)
     skel_path = png_file.replace('.png', '.skel.png')
-    render_skeleton(im, skel, complement(rgb)).save(skel_path)
+    # render_skeleton(im, skel, complement(rgb)).save(skel_path)
+    render_skeleton(im, skel, (255, 0, 0)).save(skel_path)
     print(f'Wrote {skel_path}')
 
     out_path = png_file.replace('.png', '.grid.png')
-    render_network(im, g, complement(rgb)).save(out_path)
+    # render_network(im, g, complement(rgb)).save(out_path)
+    render_network(im, g, (0, 255, 0)).save(out_path)
     print(f'Wrote {out_path}')
 
     fc = network_to_geojson(g)
