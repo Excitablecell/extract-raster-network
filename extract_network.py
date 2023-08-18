@@ -317,7 +317,8 @@ def render_network(im: Image, graph: nx.Graph, rgb: Tuple[int]) -> Image:
             px[:, :, 0] += r * circle
             px[:, :, 1] += g * circle
             px[:, :, 2] += b * circle
-    return Image.fromarray(px)
+    # return Image.fromarray(px)
+    return px
 
 
 def render_skeleton(im: Image, skel: np.ndarray, rgb: Tuple[int]) -> Image:
