@@ -271,12 +271,16 @@ def simplify_paths(g: nx.Graph, tolerance=1) -> nx.Graph:
     return g
 
 
-def extract_network(px: np.ndarray, min_distance=8) -> nx.Graph:
+def extract_network(px: np.ndarray, min_distance: int=8, simplify: bool=True) -> nx.Graph:
     skel = morphology.skeletonize(px)
     print(f'Skeleton px={skel.sum()}')
     g = connect_graph(skel, min_distance)
-    g = simplify_paths(g)
-    return g
+    if simplify:
+        g = simplify_paths(g)
+    print(f'Extracted street network:')
+    print(f'  - {len(g.nodes())} nodes')
+    print(f'  - {len(g.edges())} edges')
+    return skel, g
 
 
 def create_circular_mask(shape, center, radius):
