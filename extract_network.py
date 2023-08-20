@@ -329,7 +329,8 @@ def render_skeleton(im: Image, skel: np.ndarray, rgb: Tuple[int]) -> Image:
     px[skel > 0, 0] = r
     px[skel > 0, 1] = g
     px[skel > 0, 2] = b
-    return Image.fromarray(px)
+    # return Image.fromarray(px)
+    return px
 
 
 # Sum of the min & max of (a, b, c)
