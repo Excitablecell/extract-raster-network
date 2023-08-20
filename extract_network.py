@@ -257,7 +257,7 @@ def connect_graph(skel: np.ndarray, min_distance: int) -> nx.MultiGraph:
                 if n1 != n2:
                     nodes = merge_nodes(nodes, edges, n1, n2)
                     edges = find_paths(skel, nodes, min_distance)
-                    print(f'Merged {n1} and {n2}, d={d}')
+                    # print(f'Merged {n1} and {n2}, d={d}')
                     any_changed = True
                     break
 
@@ -310,13 +310,25 @@ def render_network(im: Image, graph: nx.Graph, rgb: Tuple[int]) -> Image:
         px[:, :, 1] += g * circle
         px[:, :, 2] += b * circle
 
+    # for (n1, n2, k) in graph.edges(keys=True):
+    #     path = graph[n1][n2][k]['path']
+    #     for pt1, pt2 in zip([*path.coords][:-1], [*path.coords][1:]):
+    #         y1, x1 = pt1
+    #         y2, x2 = pt2
+    #         cv2.line(px, (int(y1), int(x1)), (int(y2), int(x2)), color=rgb, thickness=1)
+    #     for (x, y) in path.coords:
+    #         circle = create_circular_mask(px.shape[0:2], (y, x), 2).astype(np.uint8)
+    #         px[:, :, 0] += r * circle
+    #         px[:, :, 1] += g * circle
+    #         px[:, :, 2] += b * circle
+
     for (n1, n2, k) in graph.edges(keys=True):
         path = graph[n1][n2][k]['path']
-        for pt1, pt2 in zip([*path.coords][:-1], [*path.coords][1:]):
+        for pt1, pt2 in zip([*path][:-1], [*path][1:]):
             y1, x1 = pt1
             y2, x2 = pt2
             cv2.line(px, (int(y1), int(x1)), (int(y2), int(x2)), color=rgb, thickness=1)
-        for (x, y) in path.coords:
+        for (x, y) in path:
             circle = create_circular_mask(px.shape[0:2], (y, x), 2).astype(np.uint8)
             px[:, :, 0] += r * circle
             px[:, :, 1] += g * circle
