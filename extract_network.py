@@ -210,9 +210,9 @@ def find_paths(skel: np.ndarray, nodes: List[Tuple[int]], min_distance=5) -> Lis
                             start != stop or is_valid_self_loop(path, min_distance)
                         ):
                             edges.append(new_path)
-                            if len(path) - 1 < min_distance:
-                                # This edge will get pruned out anyway, so no need to keep looking.
-                                return edges
+                            # if len(path) - 1 < min_distance:
+                            #     # This edge will get pruned out anyway, so no need to keep looking.
+                            #     return edges
 
         frontier = next_frontier
 
