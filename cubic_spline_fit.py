@@ -112,8 +112,8 @@ class CubicSpline2D:
         self.s = self.__calc_s(x, y)
         self.sx = CubicSpline1D(self.s, x)
         self.sy = CubicSpline1D(self.s, y)
-        self.score_x = sx.score
-        self.score_y = sy.score
+        self.score_x = self.sx.score
+        self.score_y = self.sy.score
         self.score = self.score_x * self.score_y
 
     def __calc_s(self, x, y):
