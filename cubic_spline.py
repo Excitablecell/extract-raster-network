@@ -3,19 +3,6 @@ import bisect
 import numpy as np
 
 class CubicSpline1D:
-    """
-    1D Cubic Spline class
-
-    Parameters
-    ----------
-    x : list
-        x coordinates for data points. This x coordinates must be
-        sorted
-        in ascending order.
-    y : list
-        y coordinates for data points
-    """
-
     def __init__(self, x, y):
 
         h = np.diff(x)
@@ -43,16 +30,6 @@ class CubicSpline1D:
             self.b.append(b)
 
     def calc_position(self, x):
-        """
-        Calc `y` position for given `x`.
-
-        if `x` is outside the data point's `x` range, return None.
-
-        Returns
-        -------
-        y : float
-            y position for given x.
-        """
         if x < self.x[0]:
             return None
         elif x > self.x[-1]:
@@ -66,17 +43,6 @@ class CubicSpline1D:
         return position
 
     def calc_first_derivative(self, x):
-        """
-        Calc first derivative at given x.
-
-        if x is outside the input x, return None
-
-        Returns
-        -------
-        dy : float
-            first derivative for given x.
-        """
-
         if x < self.x[0]:
             return None
         elif x > self.x[-1]:
@@ -88,17 +54,6 @@ class CubicSpline1D:
         return dy
 
     def calc_second_derivative(self, x):
-        """
-        Calc second derivative at given x.
-
-        if x is outside the input x, return None
-
-        Returns
-        -------
-        ddy : float
-            second derivative for given x.
-        """
-
         if x < self.x[0]:
             return None
         elif x > self.x[-1]:
@@ -110,15 +65,9 @@ class CubicSpline1D:
         return ddy
 
     def __search_index(self, x):
-        """
-        search data segment index
-        """
         return bisect.bisect(self.x, x) - 1
 
     def __calc_A(self, h):
-        """
-        calc matrix A for spline coefficient c
-        """
         A = np.zeros((self.nx, self.nx))
         A[0, 0] = 1.0
         for i in range(self.nx - 1):
@@ -133,9 +82,6 @@ class CubicSpline1D:
         return A
 
     def __calc_B(self, h, a):
-        """
-        calc matrix B for spline coefficient c
-        """
         B = np.zeros(self.nx)
         for i in range(self.nx - 2):
             B[i + 1] = 3.0 * (a[i + 2] - a[i + 1]) / h[i + 1] - 3.0 * (a[i + 1] - a[i]) / h[i]
@@ -143,17 +89,6 @@ class CubicSpline1D:
 
 
 class CubicSpline2D:
-    """
-    Cubic CubicSpline2D class
-
-    Parameters
-    ----------
-    x : list
-        x coordinates for data points.
-    y : list
-        y coordinates for data points.
-    """
-
     def __init__(self, x, y):
         self.s = self.__calc_s(x, y)
         self.sx = CubicSpline1D(self.s, x)
@@ -168,42 +103,12 @@ class CubicSpline2D:
         return s
 
     def calc_position(self, s):
-        """
-        calc position
-
-        Parameters
-        ----------
-        s : float
-            distance from the start point. if `s` is outside the data point's
-            range, return None.
-
-        Returns
-        -------
-        x : float
-            x position for given s.
-        y : float
-            y position for given s.
-        """
         x = self.sx.calc_position(s)
         y = self.sy.calc_position(s)
 
         return x, y
 
     def calc_curvature(self, s):
-        """
-        calc curvature
-
-        Parameters
-        ----------
-        s : float
-            distance from the start point. if `s` is outside the data point's
-            range, return None.
-
-        Returns
-        -------
-        k : float
-            curvature for given s.
-        """
         dx = self.sx.calc_first_derivative(s)
         ddx = self.sx.calc_second_derivative(s)
         dy = self.sy.calc_first_derivative(s)
@@ -212,22 +117,7 @@ class CubicSpline2D:
         return k
 
     def calc_yaw(self, s):
-        """
-        calc yaw
-
-        Parameters
-        ----------
-        s : float
-            distance from the start point. if `s` is outside the data point's
-            range, return None.
-
-        Returns
-        -------
-        yaw : float
-            yaw angle (tangent vector) for given s.
-        """
         dx = self.sx.calc_first_derivative(s)
         dy = self.sy.calc_first_derivative(s)
         yaw = math.atan2(dy, dx)
         return yaw
-
