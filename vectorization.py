@@ -36,7 +36,7 @@ def correct_path_direction(path: list[tuple], n1: tuple, n2: tuple) -> list[tupl
         return path[::-1]
         # print('reverse path list')
     else:
-        print(f'cannot find node = {n1}, in path start = {path[0]}, end = {path[-1]}')
+        # print(f'cannot find node = {n1}, in path start = {path[0]}, end = {path[-1]}')
         return []
 
 
@@ -112,7 +112,7 @@ def find_node_directions(graph: nx.Graph, nodes_terminal: list[tuple], nodes_bra
     return directed_terminals, directed_branching
 
 
-def track_path(path: list) -> np.ndarray:
+def track_path(graph: nx.graph, path: list) -> np.ndarray:
     waypoints = []
     for i in range(len(path) - 1):
         n1 = path[i]
@@ -187,7 +187,7 @@ def find_paths_among_terminals(graph: nx.Graph, inlets: np.ndarray, outlets: np.
                 path = nx.shortest_path(graph, n1, n2, weight='d', method='dijkstra')
                 # print(f'From {n1} to {n2}: {path}')
                 if path_is_valid(path):
-                    waypoints_all.append(track_path(path))
+                    waypoints_all.append(track_path(graph, path))
                     paths.append(path)
 
     print(f'Found {len(paths)} paths')
@@ -252,7 +252,8 @@ def reduce_graph(graph: nx.Graph) -> tuple:
             
             # Pair the best matches
             min_id = np.argmin(np.fabs(diffs)) # find the minimum angle difference
-            print(f'diffs: {diffs}, min_id: {min_id}')
+            print(f'at node {n0}, {nodes}, diffs: {np.rad2deg(diffs)}, min_id: {min_id}')
+            # print(f'diffs: {diffs}, min_id: {min_id}')
             votes[min_id] = votes[min_id] + 1
             connect_matrix[i, min_id] = True
             connect_matrix[min_id, i] = True
@@ -293,8 +294,10 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
 
     fig, axes = plt.subplots(3, 3, figsize=(12, 12), sharex=True, sharey=True)
     axes = axes.ravel()
-    axes[0].imshow(skel.T, cmap='gray')
-    axes[1].imshow(skel.T, cmap='gray')
+    # axes[0].imshow(skel.T, cmap='gray')
+    # axes[1].imshow(skel.T, cmap='gray')
+    axes[0].imshow(img_gray)
+    axes[1].imshow(img_gray)
     axes[2].imshow(img_gray)
     axes[3].imshow(img_gray)
     axes[4].imshow(img_gray)
@@ -307,7 +310,8 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
     nodes = np.array([node for (node, degree) in graph.degree()], dtype=float)
     degrees = np.array([degree for (node, degree) in graph.degree()], dtype=float)
     axes[0].scatter(nodes[:, 0], nodes[:, 1], c=degrees, s=1)
-    print(f'Orignal graph has {nodes.shape[0]} nodes, degrees: {degrees}')
+    num_nodes = nodes.shape[0]
+    original_degrees = degrees
 
     # Fix small gaps in the orignal graph
     nodes_1_degree = find_terminal_nodes(graph)
@@ -325,8 +329,8 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
     nodes = np.array([node for (node, degree) in graph.degree()], dtype=float)
     degrees = np.array([degree for (node, degree) in graph.degree()], dtype=float)
     axes[2].scatter(nodes[:, 0], nodes[:, 1], c=degrees, s=1)
+    print(f'Orignal graph has {num_nodes} nodes, degrees: {original_degrees}')
     print(f'Reduced graph has {nodes.shape[0]} nodes, degrees: {degrees}')
-
 
     # Find terminals
     nodes_terminal = find_terminal_nodes(graph)
@@ -360,6 +364,12 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
         dx, dy = normalize_dx_dy(dx, dy)
         axes[5].quiver(xs[:-1], ys[:-1], dx, dy, color='g', angles='xy', scale_units='xy', scale=0.1)
         
+    # polylines = graph_to_polylines(graph, simplify=simplify)
+    # for i, polyline in enumerate(polylines):
+    #     xs = polyline[:, 0]
+    #     ys = polyline[:, 1]
+    #     axes[-1].plot(xs, ys)
+
     axes[0].set_aspect('equal')
     axes[1].set_aspect('equal')
     axes[2].set_aspect('equal')
@@ -381,7 +391,7 @@ if __name__ == '__main__':
 
     simplify = False
     skel, graph = image_to_graph(img_gray, simplify=simplify)
-    polylines = graph_to_polylines(graph, simplify=simplify)
+    # polylines = graph_to_polylines(graph, simplify=simplify)
 
     # connect_terminal_nodes(graph)
     extract_polylines_from_graph(graph)
