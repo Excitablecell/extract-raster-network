@@ -210,7 +210,6 @@ def estimate_path_end_yaw(path: list[tuple], local_length: int=10) -> tuple:
     return front_yaw, rear_yaw
 
 def reduce_graph(graph: nx.Graph) -> tuple:
-    # node_types = nx.get_node_attributes(graph, "type")
     for n0, degree in graph.degree:
         if 'type' in graph.nodes[n0]:
             node_type = graph.nodes[n0]['type']
@@ -253,6 +252,7 @@ def reduce_graph(graph: nx.Graph) -> tuple:
             
             # Pair the best matches
             min_id = np.argmin(np.fabs(diffs)) # find the minimum angle difference
+            print(f'diffs: {diffs}, min_id: {min_id}')
             votes[min_id] = votes[min_id] + 1
             connect_matrix[i, min_id] = True
             connect_matrix[min_id, i] = True
@@ -295,7 +295,7 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
     axes = axes.ravel()
     axes[0].imshow(skel.T, cmap='gray')
     axes[1].imshow(skel.T, cmap='gray')
-    axes[2].imshow(img_color)
+    axes[2].imshow(img_gray)
     axes[3].imshow(img_gray)
     axes[4].imshow(img_gray)
     axes[5].imshow(img_gray)
@@ -307,7 +307,7 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
     nodes = np.array([node for (node, degree) in graph.degree()], dtype=float)
     degrees = np.array([degree for (node, degree) in graph.degree()], dtype=float)
     axes[0].scatter(nodes[:, 0], nodes[:, 1], c=degrees, s=1)
-    print(f'Reduced graph degrees {degrees}')
+    print(f'Orignal graph has {nodes.shape[0]} nodes, degrees: {degrees}')
 
     # Fix small gaps in the orignal graph
     nodes_1_degree = find_terminal_nodes(graph)
@@ -322,8 +322,11 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
         graph, changed = reduce_graph(graph)
         count  = count + 1
     print(f'Reduced graph after {count} iterations')
-    degrees = [degree for (n0, degree) in graph.degree]
-    print(f'Reduced graph degrees {degrees}')
+    nodes = np.array([node for (node, degree) in graph.degree()], dtype=float)
+    degrees = np.array([degree for (node, degree) in graph.degree()], dtype=float)
+    axes[2].scatter(nodes[:, 0], nodes[:, 1], c=degrees, s=1)
+    print(f'Reduced graph has {nodes.shape[0]} nodes, degrees: {degrees}')
+
 
     # Find terminals
     nodes_terminal = find_terminal_nodes(graph)
@@ -338,11 +341,11 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
     # outlets = nodes_branching_np[nodes_branching_np[:, -1] < 0.5]
     print(f'found {inlets.shape[0]} inlets, {outlets.shape[0]} outlets')
 
-    axes[2].quiver(inlets[:, 0], inlets[:, 1], inlets[:, 2], inlets[:, 3], 
+    axes[3].quiver(inlets[:, 0], inlets[:, 1], inlets[:, 2], inlets[:, 3], 
                    color='r', angles='xy', scale_units='xy', scale=0.1)
-    axes[2].quiver(outlets[:, 0], outlets[:, 1], outlets[:, 2], outlets[:, 3], 
+    axes[3].quiver(outlets[:, 0], outlets[:, 1], outlets[:, 2], outlets[:, 3], 
                    color='g', angles='xy', scale_units='xy', scale=0.1)
-    # axes[2].quiver(nodes_directed_np[:, 0], nodes_directed_np[:, 1], nodes_directed_np[:, 4], nodes_directed_np[:, 5], 
+    # axes[3].quiver(nodes_directed_np[:, 0], nodes_directed_np[:, 1], nodes_directed_np[:, 4], nodes_directed_np[:, 5], 
     #                color='b', angles='xy', scale_units='xy', scale=0.1)
     paths, path_waypoints = find_paths_among_terminals(graph, inlets, outlets)
 
@@ -350,12 +353,12 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
         path = np.array(path, dtype=float)
         xs = path[:, 0]
         ys = path[:, 1]
-        axes[3].plot(xs, ys)
+        axes[4].plot(xs, ys)
 
         dx = np.diff(path[:, 0])
         dy = np.diff(path[:, 1])
         dx, dy = normalize_dx_dy(dx, dy)
-        axes[4].quiver(xs[:-1], ys[:-1], dx, dy, color='g', angles='xy', scale_units='xy', scale=0.1)
+        axes[5].quiver(xs[:-1], ys[:-1], dx, dy, color='g', angles='xy', scale_units='xy', scale=0.1)
         
     axes[0].set_aspect('equal')
     axes[1].set_aspect('equal')
