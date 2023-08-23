@@ -252,7 +252,7 @@ def reduce_graph(graph: nx.Graph) -> tuple:
                     diffs.append(yaw1 + yaw2) # use plus here, since both angles are pointing away from n0
             
             # Pair the best matches
-            min_id = np.argmin(diffs) # find the minimum angle difference
+            min_id = np.argmin(np.fabs(diffs)) # find the minimum angle difference
             votes[min_id] = votes[min_id] + 1
             connect_matrix[i, min_id] = True
             connect_matrix[min_id, i] = True
@@ -269,8 +269,8 @@ def reduce_graph(graph: nx.Graph) -> tuple:
 
             js = [j for (j, val) in enumerate(connect_matrix[i]) if val == True]
             for j in js:
-                # print(f'j = {j}')
-                passer_ids.remove(j)
+                if j in passer_ids:
+                    passer_ids.remove(j)
                 new_path = [n0_new] + paths[j]
                 graph.add_edge(n0_new, nodes[j], path=new_path, d=len(new_path) - 1)
 
@@ -325,14 +325,17 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
     degrees = [degree for (n0, degree) in graph.degree]
     print(f'Reduced graph degrees {degrees}')
 
+    # Find terminals
     nodes_terminal = find_terminal_nodes(graph)
     nodes_branching = find_branching_nodes(graph, nodes_terminal)
     nodes_terminal, nodes_branching = find_node_directions(graph, nodes_terminal, nodes_branching, img_color)
     
     nodes_terminal_np = np.array(nodes_terminal)
     nodes_branching_np = np.array(nodes_branching)
-    inlets = nodes_branching_np[nodes_branching_np[:, -1] > 0.5]
-    outlets = nodes_branching_np[nodes_branching_np[:, -1] < 0.5]
+    inlets = nodes_terminal_np[nodes_terminal_np[:, -1] > 0.5]
+    outlets = nodes_terminal_np[nodes_terminal_np[:, -1] < 0.5]
+    # inlets = nodes_branching_np[nodes_branching_np[:, -1] > 0.5]
+    # outlets = nodes_branching_np[nodes_branching_np[:, -1] < 0.5]
     print(f'found {inlets.shape[0]} inlets, {outlets.shape[0]} outlets')
 
     axes[2].quiver(inlets[:, 0], inlets[:, 1], inlets[:, 2], inlets[:, 3], 
@@ -354,24 +357,6 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
         dx, dy = normalize_dx_dy(dx, dy)
         axes[4].quiver(xs[:-1], ys[:-1], dx, dy, color='g', angles='xy', scale_units='xy', scale=0.1)
         
-        # yaw = np.arctan2(dy, dx)
-        # yaw_diff = np.fabs(np.rad2deg(np.diff(yaw)))
-        # if np.all(yaw_diff < 60):
-        #     axes[5].plot(xs, ys)
-
-        waypoints = np.array(waypoints, dtype=float)
-        waypoints = downsample_path(waypoints, 2)
-        if waypoints.shape[0] != 0:
-            xs = waypoints[:, 0]
-            ys = waypoints[:, 1]
-            axes[5].plot(xs, ys)
-
-            if path_is_smooth(waypoints, 60.0):
-                axes[7].plot(xs, ys)
-
-            cubic_spline, curve = fit_cubic_polynomial(xs, ys)
-            axes[8].plot(curve[:, 0], curve[:, 1])
-
     axes[0].set_aspect('equal')
     axes[1].set_aspect('equal')
     axes[2].set_aspect('equal')
