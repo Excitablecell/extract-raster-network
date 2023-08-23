@@ -160,7 +160,7 @@ def path_is_smooth(path: np.ndarray, thresh: float=60.0) -> bool:
     # yaw_rate_valid = np.fabs(yaw_rate) <= thresh
 
     if np.max(yaw_rate) > thresh:
-        print(f'max yaw_rate: {np.max(yaw_rate):.1f}, threshold: {thresh}')
+        # print(f'max yaw_rate: {np.max(yaw_rate):.1f}, threshold: {thresh}')
         return False
     else:
         return True
@@ -194,90 +194,6 @@ def find_paths_among_terminals(graph: nx.Graph, inlets: np.ndarray, outlets: np.
     return paths, waypoints_all
 
 
-def connect_terminal_nodes(graph: nx.Graph) -> nx.Graph:
-
-    fig, axes = plt.subplots(3, 3, figsize=(12, 12), sharex=True, sharey=True)
-    axes = axes.ravel()
-
-    nodes = np.array([node for (node, degree) in graph.degree()], dtype=float)
-    degrees = np.array([degree for (node, degree) in graph.degree()], dtype=float)
-    axes[0].imshow(skel.T, cmap='gray')
-    axes[0].scatter(nodes[:, 0], nodes[:, 1], c=degrees, s=1)
-
-    nodes_1_degree = find_terminal_nodes(graph)
-    graph = connect_small_gaps(graph, nodes_1_degree, thresh=8)
-    nodes_1_degree_np = np.array(nodes_1_degree)
-    axes[1].imshow(skel.T, cmap='gray')
-    axes[1].scatter(nodes_1_degree_np[:, 0], nodes_1_degree_np[:, 1], c='red', s=3)
-
-    nodes_terminal = find_terminal_nodes(graph)
-    nodes_branching = find_branching_nodes(graph, nodes_terminal)
-    nodes_terminal, nodes_branching = find_node_directions(graph, nodes_terminal, nodes_branching, img_color)
-    
-    nodes_terminal_np = np.array(nodes_terminal)
-    nodes_branching_np = np.array(nodes_branching)
-    inlets = nodes_branching_np[nodes_branching_np[:, -1] > 0.5]
-    outlets = nodes_branching_np[nodes_branching_np[:, -1] < 0.5]
-    print(f'found {inlets.shape[0]} inlets, {outlets.shape[0]} outlets')
-
-    axes[2].imshow(img_color)
-    axes[2].quiver(inlets[:, 0], inlets[:, 1], inlets[:, 2], inlets[:, 3], 
-                   color='r', angles='xy', scale_units='xy', scale=0.1)
-    axes[2].quiver(outlets[:, 0], outlets[:, 1], outlets[:, 2], outlets[:, 3], 
-                   color='g', angles='xy', scale_units='xy', scale=0.1)
-    # axes[2].quiver(nodes_directed_np[:, 0], nodes_directed_np[:, 1], nodes_directed_np[:, 4], nodes_directed_np[:, 5], 
-    #                color='b', angles='xy', scale_units='xy', scale=0.1)
-    paths, path_waypoints = find_paths_among_terminals(graph, inlets, outlets)
-
-    
-    axes[3].imshow(img_gray)
-    axes[4].imshow(img_gray)
-    axes[5].imshow(img_gray)
-    axes[6].imshow(img_gray)
-    axes[7].imshow(img_gray)
-    axes[8].imshow(img_gray)
-
-    for path, waypoints in zip(paths, path_waypoints):
-        path = np.array(path, dtype=float)
-        xs = path[:, 0]
-        ys = path[:, 1]
-        axes[3].plot(xs, ys)
-
-        dx = np.diff(path[:, 0])
-        dy = np.diff(path[:, 1])
-        dx, dy = normalize_dx_dy(dx, dy)
-        axes[4].quiver(xs[:-1], ys[:-1], dx, dy, color='g', angles='xy', scale_units='xy', scale=0.1)
-        
-        # yaw = np.arctan2(dy, dx)
-        # yaw_diff = np.fabs(np.rad2deg(np.diff(yaw)))
-        # if np.all(yaw_diff < 60):
-        #     axes[5].plot(xs, ys)
-
-        waypoints = np.array(waypoints, dtype=float)
-        waypoints = downsample_path(waypoints, 2)
-        if waypoints.shape[0] != 0:
-            xs = waypoints[:, 0]
-            ys = waypoints[:, 1]
-            axes[5].plot(xs, ys)
-
-            if path_is_smooth(waypoints, 60.0):
-                axes[7].plot(xs, ys)
-
-            cubic_spline, curve = fit_cubic_polynomial(xs, ys)
-            axes[8].plot(curve[:, 0], curve[:, 1])
-
-    axes[0].set_aspect('equal')
-    axes[1].set_aspect('equal')
-    axes[2].set_aspect('equal')
-    axes[3].set_aspect('equal')
-    axes[4].set_aspect('equal')
-    axes[5].set_aspect('equal')
-
-    plt.show()
-    
-    return graph
-
-
 def estimate_path_end_yaw(path: list[tuple], local_length: int=10) -> tuple:
     path_np = np.array(path)
     if path_np.shape[0] > local_length:
@@ -296,11 +212,10 @@ def estimate_path_end_yaw(path: list[tuple], local_length: int=10) -> tuple:
 def reduce_graph(graph: nx.Graph) -> tuple:
     # node_types = nx.get_node_attributes(graph, "type")
     for n0, degree in graph.degree:
-        node_type = 'unknown'
-        try:
+        if 'type' in graph.nodes[n0]:
             node_type = graph.nodes[n0]['type']
-        except:
-            print(f'Invalid node type')
+        else:
+            node_type = 'unknown'
 
         if degree < 2 or node_type == 'branch':
             continue
@@ -320,7 +235,7 @@ def reduce_graph(graph: nx.Graph) -> tuple:
             e1_path = e1['path']
             e1_path = correct_path_direction(e1_path, n0, n1) # paths pointing away from n0
             if e1_path:
-                n0_yaw, n1_yaw = estimate_path_end_yaw(e1_path, 10)
+                n0_yaw, n1_yaw = estimate_path_end_yaw(e1_path, 20)
                 yaws.append(n0_yaw)
                 paths.append(e1_path)
                 nodes.append(n1)
@@ -392,6 +307,7 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
     nodes = np.array([node for (node, degree) in graph.degree()], dtype=float)
     degrees = np.array([degree for (node, degree) in graph.degree()], dtype=float)
     axes[0].scatter(nodes[:, 0], nodes[:, 1], c=degrees, s=1)
+    print(f'Reduced graph degrees {degrees}')
 
     # Fix small gaps in the orignal graph
     nodes_1_degree = find_terminal_nodes(graph)
@@ -401,8 +317,13 @@ def extract_polylines_from_graph(graph: nx.Graph) -> np.ndarray:
 
     # Simplify the graph
     changed = True
+    count = 0
     while changed:
         graph, changed = reduce_graph(graph)
+        count  = count + 1
+    print(f'Reduced graph after {count} iterations')
+    degrees = [degree for (n0, degree) in graph.degree]
+    print(f'Reduced graph degrees {degrees}')
 
     nodes_terminal = find_terminal_nodes(graph)
     nodes_branching = find_branching_nodes(graph, nodes_terminal)
